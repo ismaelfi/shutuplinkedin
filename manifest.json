@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "ShutUpLinkedIn",
+  "version": "1.0.0",
+  "description": "Automatically detects and hides low-value, engagement-bait posts on LinkedIn using smart pattern recognition.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://*.linkedin.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://*.linkedin.com/*"],
+      "js": ["baitDetector.js", "action.js", "content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "ShutUpLinkedIn Settings"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

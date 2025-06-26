@@ -1,0 +1,154 @@
+/* ShutUpLinkedIn Styles */
+
+.shutup-hidden {
+  display: none !important;
+}
+
+.shutup-replacement {
+  background: #f8f9fa;
+  border: 1px solid #e3e6ea;
+  border-radius: 8px;
+  margin: 12px 0;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: all 0.2s ease;
+}
+
+.shutup-replacement:hover {
+  background: #f0f2f5;
+  border-color: #d0d7de;
+}
+
+.shutup-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.shutup-icon {
+  font-size: 16px;
+}
+
+.shutup-text {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.shutup-show {
+  background: #0a66c2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.shutup-show:hover {
+  background: #004182;
+}
+
+.shutup-preview {
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.4;
+  max-height: 60px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.shutup-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30px;
+  height: 20px;
+  background: linear-gradient(to right, transparent, #f8f9fa);
+}
+
+/* Reason tags */
+.shutup-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.shutup-reason-tag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Feedback buttons */
+.shutup-feedback {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.shutup-feedback-btn {
+  background: #f8f9fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shutup-feedback-btn:hover {
+  background: #e1e4e8;
+}
+
+.shutup-feedback-btn.selected {
+  background: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.shutup-feedback-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.shutup-thanks {
+  color: #28a745;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+/* LinkedIn-specific adjustments */
+.feed-shared-update-v2.shutup-hidden {
+  display: none !important;
+}
+
+/* Stats indicator (optional) */
+.shutup-stats {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.shutup-stats.hidden {
+  opacity: 0;
+}

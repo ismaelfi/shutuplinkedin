@@ -1,0 +1,30 @@
+{
+  "name": "shutuplinkedin",
+  "version": "1.0.0",
+  "description": "A smart Chrome extension that automatically detects and hides low-value, engagement-bait posts on LinkedIn",
+  "main": "content.js",
+  "scripts": {
+    "build": "echo 'Extension is ready for loading in Chrome'",
+    "lint": "echo 'No linting configured yet'",
+    "test": "echo 'No tests configured yet'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "linkedin",
+    "social-media",
+    "content-filter",
+    "engagement-bait",
+    "productivity"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ismaelfi/shutuplinkedin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ismaelfi/shutuplinkedin/issues"
+  },
+  "homepage": "https://github.com/ismaelfi/shutuplinkedin#readme"
+}
