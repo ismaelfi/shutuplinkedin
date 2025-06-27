@@ -4,131 +4,196 @@
   display: none !important;
 }
 
-.shutup-replacement {
+/* Author-based replacement styles */
+.shutup-replacement--author {
   background: #f8f9fa;
   border: 1px solid #e3e6ea;
   border-radius: 8px;
-  margin: 12px 0;
-  padding: 16px;
+  margin: 8px 0;
+    padding: 12px 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   transition: all 0.2s ease;
+  position: relative;
 }
 
-.shutup-replacement:hover {
+.shutup-replacement--author:hover {
   background: #f0f2f5;
   border-color: #d0d7de;
 }
 
-.shutup-info {
+.shutup-author-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 12px;
 }
 
-.shutup-icon {
-  font-size: 16px;
+.shutup-author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
-.shutup-text {
-  color: #666;
-  font-size: 14px;
-  font-weight: 500;
+.shutup-author-details {
   flex: 1;
+  min-width: 0;
 }
 
-.shutup-show {
-  background: #0a66c2;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.shutup-show:hover {
-  background: #004182;
-}
-
-.shutup-preview {
-  color: #999;
-  font-size: 13px;
-  font-style: italic;
-  line-height: 1.4;
-  max-height: 60px;
+.shutup-author-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.2;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shutup-author-title {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.2;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shutup-feedback-message {
+  font-size: 13px;
+  color: #28a745;
+    font-weight: 500;
+  }
+  
+  /* Menu styles */
+  .shutup-menu-container {
   position: relative;
-  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
-.shutup-preview::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 30px;
-  height: 20px;
-  background: linear-gradient(to right, transparent, #f8f9fa);
-}
-
-/* Reason tags */
-.shutup-reasons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.shutup-reason-tag {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 2px 6px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-/* Feedback buttons */
-.shutup-feedback {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.shutup-feedback-btn {
-  background: #f8f9fa;
-  border: 1px solid #e1e4e8;
+.shutup-menu-trigger {
+  background: none;
+  border: none;
+  padding: 8px;
   border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 11px;
   cursor: pointer;
+  color: #666;
   transition: all 0.2s ease;
 }
 
-.shutup-feedback-btn:hover {
-  background: #e1e4e8;
+.shutup-menu-trigger:hover {
+  background: #e3e6ea;
+  color: #333;
 }
 
-.shutup-feedback-btn.selected {
-  background: #d4edda;
-  border-color: #28a745;
-  color: #155724;
+.shutup-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+    border: 1px solid #e3e6ea;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
 }
 
-.shutup-feedback-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+.shutup-menu-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
-.shutup-thanks {
-  color: #28a745;
-  font-size: 11px;
-  font-weight: 500;
+.shutup-menu-item {
+  display: flex;
+  align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+    color: #333;
+}
+
+.shutup-menu-item:hover {
+  background: #f0f2f5;
+}
+
+.shutup-menu-item:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.shutup-menu-item:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+.shutup-menu-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.shutup-menu-divider {
+  height: 1px;
+  background: #e3e6ea;
+  margin: 4px 0;
+}
+
+/* Details panel */
+.shutup-details-panel {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f0f2f5;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.shutup-details-content {
+  color: #666;
+}
+
+/* Re-hide button styles */
+.shutup-rehide-btn {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
   margin-left: 8px;
 }
 
+.shutup-rehide-btn:hover {
+  background: #ff5252;
+  transform: scale(1.05);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.shutup-rehide-btn:active {
+  transform: scale(0.95);
+}
+
+/* Container for re-hide button when added as fallback */
+.shutup-rehide-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
 /* LinkedIn-specific adjustments */
 .feed-shared-update-v2.shutup-hidden {
   display: none !important;

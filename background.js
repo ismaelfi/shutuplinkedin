@@ -17,10 +17,8 @@ class BackgroundService {
       return true; // Keep message channel open for async responses
     });
 
-    // Listen for tab updates to inject content script if needed
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-      this.handleTabUpdate(tabId, changeInfo, tab);
-    });
+    // Remove the tab update listener that was causing duplicate injection
+    // The manifest.json content_scripts will handle injection automatically
   }
 
   handleInstall(details) {
@@ -79,22 +77,6 @@ class BackgroundService {
       default:
         sendResponse({ success: false, error: 'Unknown message type' });
     }
-  }
-
-  handleTabUpdate(tabId, changeInfo, tab) {
-    // Only act on LinkedIn tabs
-    if (!tab.url || !tab.url.includes('linkedin.com')) return;
-
-    // Only act when page is completely loaded
-    if (changeInfo.status !== 'complete') return;
-
-    // Ensure content script is injected (redundant with manifest, but good failsafe)
-    chrome.scripting.executeScript({
-      target: { tabId: tabId },
-      files: ['content.js']
-    }).catch(() => {
-      // Script probably already injected
-    });
   }
 
   handleIssueReport(data) {
