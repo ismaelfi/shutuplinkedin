@@ -74,6 +74,18 @@ class BackgroundService {
         sendResponse({ success: true });
         break;
 
+      case 'TEST_OLLAMA_CONNECTION':
+        this.testOllamaConnection(message.endpoint, message.model)
+          .then(result => sendResponse({ success: true, ...result }))
+          .catch(error => sendResponse({ success: false, error: error.message }));
+        break;
+
+      case 'OLLAMA_GENERATE':
+        this.ollamaGenerate(message.endpoint, message.model, message.prompt, message.options, message.timeout)
+          .then(result => sendResponse({ success: true, data: result }))
+          .catch(error => sendResponse({ success: false, error: error.message }));
+        break;
+
       default:
         sendResponse({ success: false, error: 'Unknown message type' });
     }
@@ -82,6 +94,137 @@ class BackgroundService {
   handleIssueReport(data) {
     // In a real implementation, you might send this to your analytics service
     console.log('Issue reported:', data);
+  }
+
+  // Test Ollama connection from background script (has network permissions)
+  async testOllamaConnection(endpoint = 'http://127.0.0.1:11434', model = 'llama3.2:1b') {
+    try {
+      // Normalize endpoint (remove trailing slash)
+      const normalizedEndpoint = endpoint.replace(/\/$/, '');
+
+      console.log(`Testing Ollama connection: ${normalizedEndpoint}/api/tags`);
+
+      // Test basic connection with simpler request
+      const controller1 = new AbortController();
+      const timeoutId1 = setTimeout(() => controller1.abort(), 8000);
+
+      const tagsResponse = await fetch(`${normalizedEndpoint}/api/tags`, {
+        method: 'GET',
+        signal: controller1.signal
+      });
+
+      clearTimeout(timeoutId1);
+
+      if (!tagsResponse.ok) {
+        throw new Error(`Connection failed: HTTP ${tagsResponse.status} - ${tagsResponse.statusText}`);
+      }
+
+      const data = await tagsResponse.json();
+      const availableModels = data.models?.map(m => m.name) || [];
+
+      console.log(`Ollama available models: ${availableModels.join(', ')}`);
+
+      // Check if requested model is available
+      if (!availableModels.includes(model)) {
+        return {
+          connected: true,
+          modelAvailable: false,
+          availableModels: availableModels,
+          message: `Model ${model} not found. Available: ${availableModels.slice(0, 3).join(', ')}`
+        };
+      }
+
+      // Skip generation test for now - just return success if model is available
+      console.log(`Model ${model} is available, skipping generation test for now`);
+
+      return {
+        connected: true,
+        modelAvailable: true,
+        modelCount: availableModels.length,
+        message: 'Connection successful! Model is available.',
+        note: 'Generation test skipped - model verified as available'
+      };
+
+    } catch (error) {
+      let errorMessage = error.message;
+
+      // Provide more specific error messages
+      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        errorMessage = 'Connection timeout - Ollama might be slow or unavailable';
+      } else if (error.message.includes('fetch')) {
+        errorMessage = 'Cannot connect to Ollama - make sure it\'s running on the specified endpoint';
+      } else if (error.message.includes('NetworkError')) {
+        errorMessage = 'Network error - check Ollama endpoint and Chrome permissions';
+      }
+
+      console.error('Ollama connection test failed:', error);
+
+      return {
+        connected: false,
+        modelAvailable: false,
+        error: errorMessage,
+        message: `Test failed: ${errorMessage}`
+      };
+    }
+  }
+
+  // Generate content using Ollama API
+  async ollamaGenerate(endpoint = 'http://127.0.0.1:11434', model = 'llama3.2:1b', prompt = '', options = {}, timeout = 30000) {
+    try {
+      const normalizedEndpoint = endpoint.replace(/\/$/, '');
+
+      console.log(`Ollama generate request: ${model}, prompt length: ${prompt.length}`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const response = await fetch(`${normalizedEndpoint}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: model,
+          prompt: prompt,
+          stream: false,
+          options: {
+            temperature: 0.1,
+            num_predict: 150,
+            ...options
+          }
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        let errorDetails = response.statusText;
+        try {
+          const errorText = await response.text();
+          if (errorText) errorDetails = errorText;
+        } catch (e) {
+          // Ignore error reading response
+        }
+        throw new Error(`Generation failed: HTTP ${response.status} - ${errorDetails}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.response) {
+        throw new Error('No response content from Ollama');
+      }
+
+      console.log(`Ollama generation successful: ${data.response.substring(0, 50)}...`);
+      return data;
+
+    } catch (error) {
+      console.error('Ollama generation error:', error);
+      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        throw new Error('Request timeout - Ollama might be slow or busy');
+      }
+      throw new Error(`Ollama generation failed: ${error.message}`);
+    }
   }
 
   // Badge management

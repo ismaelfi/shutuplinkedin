@@ -4,7 +4,11 @@ class PopupController {
       enabled: true,
       aggressiveness: 'medium',
       showStats: true,
-      hiddenCount: 0
+      hiddenCount: 0,
+      mlBackend: 'automatic',
+      mlTrainingMode: false,
+      ollamaEndpoint: 'http://127.0.0.1:11434',
+      ollamaModel: 'llama3.2:1b'
     };
 
     this.init();
@@ -56,6 +60,18 @@ class PopupController {
     document.getElementById('aggressiveness').value = this.settings.aggressiveness;
     document.getElementById('showStats').checked = this.settings.showStats;
     document.getElementById('hiddenCount').textContent = this.settings.hiddenCount || 0;
+
+    // Update ML settings
+    document.getElementById('mlBackend').value = this.settings.mlBackend;
+    document.getElementById('mlTrainingMode').checked = this.settings.mlTrainingMode;
+    document.getElementById('ollamaEndpoint').value = this.settings.ollamaEndpoint;
+    document.getElementById('ollamaModel').value = this.settings.ollamaModel;
+
+    // Show/hide Ollama settings based on backend selection
+    this.toggleOllamaSettings();
+
+    // Update ML status
+    this.updateMLStatus();
   }
 
   bindEvents() {
@@ -88,6 +104,34 @@ class PopupController {
       this.saveSettings();
     });
 
+    // ML settings events
+    document.getElementById('mlBackend').addEventListener('change', () => {
+      this.collectSettings();
+      this.toggleOllamaSettings();
+      this.updateMLStatus();
+      this.saveSettings();
+    });
+
+    document.getElementById('mlTrainingMode').addEventListener('change', () => {
+      this.collectSettings();
+      this.saveSettings();
+    });
+
+    document.getElementById('ollamaEndpoint').addEventListener('change', () => {
+      this.collectSettings();
+      this.saveSettings();
+    });
+
+    document.getElementById('ollamaModel').addEventListener('change', () => {
+      this.collectSettings();
+      this.saveSettings();
+    });
+
+    // Test Ollama connection
+    document.getElementById('testOllama').addEventListener('click', () => {
+      this.testOllamaConnection();
+    });
+
     // Help and feedback links
     document.getElementById('helpLink').addEventListener('click', (e) => {
       e.preventDefault();
@@ -104,6 +148,10 @@ class PopupController {
     this.settings.enabled = document.getElementById('enabled').checked;
     this.settings.aggressiveness = document.getElementById('aggressiveness').value;
     this.settings.showStats = document.getElementById('showStats').checked;
+    this.settings.mlBackend = document.getElementById('mlBackend').value;
+    this.settings.mlTrainingMode = document.getElementById('mlTrainingMode').checked;
+    this.settings.ollamaEndpoint = document.getElementById('ollamaEndpoint').value;
+    this.settings.ollamaModel = document.getElementById('ollamaModel').value;
   }
 
   showSaveSuccess() {
@@ -145,6 +193,196 @@ Posts are hidden with a summary - you can always click "Show anyway" to view the
     chrome.tabs.create({
       url: 'https://github.com/ismaelfi/shutuplinkedin/issues'
     });
+  }
+
+  // ML-specific methods
+  toggleOllamaSettings() {
+    const ollamaSettings = document.getElementById('ollamaSettings');
+    const backend = document.getElementById('mlBackend').value;
+
+    if (backend === 'ollama' || backend === 'automatic') {
+      ollamaSettings.style.display = 'block';
+    } else {
+      ollamaSettings.style.display = 'none';
+    }
+  }
+
+  async updateMLStatus() {
+    const statusElement = document.getElementById('mlStatus');
+    const backend = document.getElementById('mlBackend').value;
+
+    switch (backend) {
+      case 'rules':
+        statusElement.textContent = '✅ Rule-based detection active';
+        statusElement.style.color = '#28a745';
+        break;
+
+      case 'tensorflow':
+        statusElement.textContent = '🧠 Loading TensorFlow.js...';
+        statusElement.style.color = '#007bff';
+        this.checkTensorFlowStatus(statusElement);
+        break;
+
+      case 'ollama':
+        statusElement.textContent = '🤖 Connecting to Ollama...';
+        statusElement.style.color = '#6f42c1';
+        this.checkOllamaStatus(statusElement);
+        break;
+
+      case 'automatic':
+        statusElement.textContent = '🔄 Automatic mode - testing backends...';
+        statusElement.style.color = '#fd7e14';
+        this.checkAutomaticStatus(statusElement);
+        break;
+    }
+  }
+
+  async checkTensorFlowStatus(statusElement) {
+    // Send message to content script to check TensorFlow status
+    try {
+      const tabs = await chrome.tabs.query({
+        url: ["https://*.linkedin.com/*"],
+        active: true,
+        currentWindow: true
+      });
+
+      if (tabs.length > 0) {
+        const response = await chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'CHECK_ML_STATUS'
+        });
+
+        if (response?.tensorflowReady) {
+          statusElement.textContent = '✅ TensorFlow.js ready';
+          statusElement.style.color = '#28a745';
+        } else {
+          statusElement.textContent = '⚠️ TensorFlow.js loading...';
+          statusElement.style.color = '#ffc107';
+        }
+      }
+    } catch (error) {
+      statusElement.textContent = '❌ TensorFlow.js failed';
+      statusElement.style.color = '#dc3545';
+    }
+  }
+
+  async checkOllamaStatus(statusElement) {
+    try {
+      const endpoint = document.getElementById('ollamaEndpoint').value;
+      const model = document.getElementById('ollamaModel').value;
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'TEST_OLLAMA_CONNECTION',
+        endpoint: endpoint,
+        model: model
+      });
+
+      if (response.success && response.connected) {
+        const modelCount = response.modelCount || 0;
+        statusElement.textContent = `✅ Ollama connected (${modelCount} models)`;
+        statusElement.style.color = '#28a745';
+      } else {
+        throw new Error(response.error || 'Connection failed');
+      }
+    } catch (error) {
+      statusElement.textContent = '❌ Ollama not available';
+      statusElement.style.color = '#dc3545';
+    }
+  }
+
+  async checkAutomaticStatus(statusElement) {
+    const [tfStatus, ollamaStatus] = await Promise.all([
+      this.getTensorFlowStatus(),
+      this.getOllamaStatus()
+    ]);
+
+    if (ollamaStatus) {
+      statusElement.textContent = '✅ Automatic mode - using Ollama';
+      statusElement.style.color = '#28a745';
+    } else if (tfStatus) {
+      statusElement.textContent = '✅ Automatic mode - using TensorFlow.js';
+      statusElement.style.color = '#28a745';
+    } else {
+      statusElement.textContent = '✅ Automatic mode - using rules based';
+      statusElement.style.color = '#28a745';
+    }
+  }
+
+  async getTensorFlowStatus() {
+    try {
+      const tabs = await chrome.tabs.query({
+        url: ["https://*.linkedin.com/*"],
+        active: true,
+        currentWindow: true
+      });
+
+      if (tabs.length > 0) {
+        const response = await chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'CHECK_ML_STATUS'
+        });
+        return response?.tensorflowReady || false;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  async getOllamaStatus() {
+    try {
+      const endpoint = document.getElementById('ollamaEndpoint').value;
+      const model = document.getElementById('ollamaModel').value;
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'TEST_OLLAMA_CONNECTION',
+        endpoint: endpoint,
+        model: model
+      });
+
+      return response.success && response.connected;
+    } catch {
+      return false;
+    }
+  }
+
+  async testOllamaConnection() {
+    const button = document.getElementById('testOllama');
+    const statusElement = document.getElementById('ollamaStatus');
+    const originalText = button.textContent;
+
+    button.textContent = '🔄 Testing...';
+    button.disabled = true;
+
+    try {
+      const endpoint = document.getElementById('ollamaEndpoint').value;
+      const model = document.getElementById('ollamaModel').value;
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'TEST_OLLAMA_CONNECTION',
+        endpoint: endpoint,
+        model: model
+      });
+
+      if (response.success) {
+        if (response.connected && response.modelAvailable) {
+          statusElement.textContent = '✅ Connection successful! Model is ready.';
+          statusElement.style.color = '#28a745';
+        } else if (response.connected && !response.modelAvailable) {
+          statusElement.textContent = `⚠️ ${response.message}`;
+          statusElement.style.color = '#ffc107';
+        } else {
+          statusElement.textContent = `❌ ${response.message}`;
+          statusElement.style.color = '#dc3545';
+        }
+      } else {
+        throw new Error(response.error || 'Unknown error');
+      }
+
+    } catch (error) {
+      statusElement.textContent = `❌ Test failed: ${error.message}`;
+      statusElement.style.color = '#dc3545';
+    } finally {
+      button.textContent = originalText;
+      button.disabled = false;
+    }
   }
 }
 

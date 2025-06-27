@@ -8,14 +8,40 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://*.linkedin.com/*"
+    "https://*.linkedin.com/*",
+    "http://localhost:11434/*",
+    "http://127.0.0.1:11434/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "content_scripts": [
     {
       "matches": ["https://*.linkedin.com/*"],
-      "js": ["baitDetector.js", "action.js", "content.js"],
+      "js": [
+        "ml/trainingData.js",
+        "ml/ollama/config.js",
+        "ml/ollama/prompts.js",
+        "ml/ollama/ollamaClassifier.js",
+        "ml/tensorflow/featureExtractor.js",
+        "ml/tensorflow/modelBuilder.js",
+        "ml/tensorflow/tfClassifier.js",
+        "ml/mlManager.js",
+        "baitDetector.js",
+        "action.js",
+        "content.js"
+      ],
       "css": ["styles.css"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "ml/*"
+      ],
+      "matches": [
+        "https://*.linkedin.com/*"
+      ]
     }
   ],
   "action": {

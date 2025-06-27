@@ -57,6 +57,11 @@ if (window.shutUpLinkedInInitialized) {
             this.settings = { ...this.settings, ...message.settings };
             console.log('ShutUpLinkedIn: Settings updated', this.settings);
 
+            // Update ML backend if changed
+            if (message.settings.mlBackend) {
+              this.updateMLBackend(message.settings);
+            }
+
             // Re-evaluate visible posts if aggressiveness changed
             if (this.settings.enabled) {
               this.scanAndHidePosts();
@@ -67,7 +72,16 @@ if (window.shutUpLinkedInInitialized) {
             sendResponse({
               stats: this.postAction.getFeedbackStats(),
               recentlyHidden: this.postAction.getRecentlyHidden(),
-              settings: this.settings
+              settings: this.settings,
+              mlStats: this.baitDetector.getStats()
+            });
+            break;
+
+          case 'CHECK_ML_STATUS':
+            sendResponse({
+              tensorflowReady: this.baitDetector.mlClassifier?.tfModel !== null,
+              ollamaReady: this.baitDetector.mlClassifier?.ollamaConfig?.enabled === true,
+              backend: this.settings.mlBackend || 'rules'
             });
             break;
         }
@@ -122,6 +136,9 @@ if (window.shutUpLinkedInInitialized) {
     }
 
     scanAndHidePosts() {
+      // Clean up any duplicate buttons before scanning for new posts
+      this.postAction.cleanupDuplicateButtons();
+
       // LinkedIn post selectors (may need updates as LinkedIn changes)
       const postSelectors = [
         '.feed-shared-update-v2',
@@ -135,7 +152,38 @@ if (window.shutUpLinkedInInitialized) {
       });
     }
 
-    analyzePost(postElement) {
+    // ML-specific methods
+    async updateMLBackend(newSettings) {
+      try {
+        if (this.baitDetector.mlClassifier) {
+          await this.baitDetector.mlClassifier.updateSettings({
+            backend: newSettings.mlBackend,
+            training_mode: newSettings.mlTrainingMode
+          });
+
+          if (newSettings.ollamaEndpoint || newSettings.ollamaModel) {
+            await this.baitDetector.mlClassifier.updateOllamaConfig({
+              endpoint: newSettings.ollamaEndpoint,
+              model: newSettings.ollamaModel
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update ML backend:', error);
+      }
+    }
+
+    async saveHiddenCount() {
+      try {
+        await chrome.storage.sync.set({
+          hiddenCount: this.settings.hiddenCount
+        });
+      } catch (error) {
+        console.error('Failed to save hidden count:', error);
+      }
+    }
+
+    async analyzePost(postElement) {
       // Skip if already processed
       if (postElement.dataset.shutupProcessed === 'true') return;
 
@@ -153,24 +201,49 @@ if (window.shutUpLinkedInInitialized) {
       const textContent = this.extractPostText(postElement);
       if (!textContent) return;
 
-      // Analyze content using BaitDetector
-      const result = this.baitDetector.shouldHidePost(
-        textContent,
-        postElement,
-        this.settings.aggressiveness
-      );
+      // Use ML-enhanced analysis if available
+      let result;
+      if (this.settings.mlBackend && this.settings.mlBackend !== 'rules') {
+        try {
+          result = await this.baitDetector.shouldHidePostAdvanced(
+            textContent,
+            postElement,
+            this.settings.aggressiveness,
+            authorInfo
+          );
+        } catch (error) {
+          console.warn('ML analysis failed, falling back to rules:', error);
+          result = this.baitDetector.shouldHidePost(
+            textContent,
+            postElement,
+            this.settings.aggressiveness
+          );
+        }
+      } else {
+        // Use rule-based analysis
+        result = this.baitDetector.shouldHidePost(
+          textContent,
+          postElement,
+          this.settings.aggressiveness
+        );
+      }
 
       if (result.shouldHide) {
-        // Determine what triggered the hiding for better user feedback
-        const reasons = this.getHidingReasons(textContent);
+        // Use ML reasoning if available, otherwise fall back to basic reasons
+        const reasons = result.reasoning || this.getHidingReasons(textContent);
 
         // Hide post using PostAction
         this.postAction.hidePost(
           postElement,
           result.score,
           textContent.substring(0, 100),
-          reasons
+          reasons,
+          result.analysis // Pass ML analysis data for detailed feedback
         );
+
+        // Update hidden count
+        this.settings.hiddenCount = (this.settings.hiddenCount || 0) + 1;
+        this.saveHiddenCount();
       }
     }
 

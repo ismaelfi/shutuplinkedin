@@ -3,6 +3,10 @@
 
 class BaitDetector {
   constructor() {
+    // Initialize ML classifier if available
+    this.mlClassifier = null;
+    this.initializeML();
+
     this.engagementBaitPatterns = [
       // Direct engagement bait
       /agree\s*\?/i,
@@ -261,6 +265,71 @@ class BaitDetector {
   }
 
   /**
+   * Initialize ML Manager if available
+   */
+  async initializeML() {
+    try {
+      if (typeof MLManager !== 'undefined' && typeof trainingData !== 'undefined') {
+        this.mlClassifier = new MLManager();
+        await this.mlClassifier.init(trainingData.getPosts());
+        console.log('BaitDetector: ML Manager initialized successfully');
+      }
+    } catch (error) {
+      console.log('BaitDetector: ML initialization failed, using rule-based only', error);
+    }
+  }
+
+  /**
+   * Enhanced analysis using both rule-based and ML classification
+   */
+  async analyzePostAdvanced(text, postElement = null, authorInfo = null) {
+    const ruleBasedResult = this.scorePost(text, postElement);
+    let mlResult = null;
+
+    // Try ML classification if available
+    if (this.mlClassifier) {
+      try {
+        const context = {
+          author: authorInfo?.name,
+          hasMedia: postElement?.querySelector('img, video') ? true : false,
+          postId: postElement?.dataset?.urn || Date.now().toString()
+        };
+
+        mlResult = await this.mlClassifier.classify(text, context);
+      } catch (error) {
+        console.error('ML classification failed:', error);
+      }
+    }
+
+    return {
+      ruleBasedScore: ruleBasedResult,
+      mlResult: mlResult,
+      combinedScore: this.combineScores(ruleBasedResult, mlResult),
+      method: mlResult ? 'hybrid' : 'rules'
+    };
+  }
+
+  /**
+   * Combine rule-based and ML scores intelligently
+   */
+  combineScores(ruleScore, mlResult) {
+    if (!mlResult) return ruleScore;
+
+    // Convert ML confidence (0-1) to rule-based scale (0-10+)
+    const mlScore = mlResult.confidence * 10;
+
+    // Weighted combination: 40% rules, 60% ML
+    const combined = (ruleScore * 0.4) + (mlScore * 0.6);
+
+    // If either method is very confident, boost the score
+    if (ruleScore > 5 || mlResult.confidence > 0.8) {
+      return Math.max(combined, Math.max(ruleScore, mlScore));
+    }
+
+    return combined;
+  }
+
+  /**
    * Determines if post should be hidden based on score and settings
    */
   shouldHidePost(text, postElement = null, aggressiveness = 'medium') {
@@ -272,6 +341,83 @@ class BaitDetector {
       score: score,
       threshold: threshold
     };
+  }
+
+  /**
+   * Enhanced shouldHidePost with ML integration
+   */
+  async shouldHidePostAdvanced(text, postElement = null, aggressiveness = 'medium', authorInfo = null) {
+    const analysis = await this.analyzePostAdvanced(text, postElement, authorInfo);
+    const threshold = this.getThreshold(aggressiveness);
+
+    // Adjust threshold for ML-enhanced detection
+    const adjustedThreshold = analysis.mlResult ? threshold * 0.8 : threshold;
+
+    const shouldHide = analysis.combinedScore >= adjustedThreshold;
+
+    return {
+      shouldHide,
+      score: analysis.combinedScore,
+      threshold: adjustedThreshold,
+      analysis: analysis,
+      reasoning: this.generateReasoning(analysis, shouldHide)
+    };
+  }
+
+  /**
+   * Generate human-readable reasoning for the decision
+   */
+  generateReasoning(analysis, shouldHide) {
+    const reasons = [];
+
+    if (analysis.ruleBasedScore > 2) {
+      reasons.push(`Rule-based patterns detected (score: ${analysis.ruleBasedScore.toFixed(1)})`);
+    }
+
+    if (analysis.mlResult) {
+      if (analysis.mlResult.confidence > 0.7) {
+        reasons.push(`High ML confidence: ${(analysis.mlResult.confidence * 100).toFixed(0)}%`);
+      }
+      if (analysis.mlResult.reasoning) {
+        reasons.push(analysis.mlResult.reasoning);
+      }
+    }
+
+    if (reasons.length === 0) {
+      return shouldHide ? 'Low-quality indicators detected' : 'Appears to be genuine content';
+    }
+
+    return reasons.join('; ');
+  }
+
+  /**
+   * Provide feedback to ML system
+   */
+  async addFeedback(text, wasCorrect, originalPrediction, actualLabel = null) {
+    if (this.mlClassifier) {
+      try {
+        await this.mlClassifier.provideFeedback(text, actualLabel || (wasCorrect ? 0 : 1), originalPrediction);
+      } catch (error) {
+        console.error('Failed to add ML feedback:', error);
+      }
+    }
+  }
+
+  /**
+   * Get statistics about detection performance
+   */
+  getStats() {
+    const stats = {
+      mlEnabled: !!this.mlClassifier,
+      backend: 'rules-only'
+    };
+
+    if (this.mlClassifier) {
+      const mlStats = this.mlClassifier.getStats();
+      return { ...stats, ...mlStats, backend: this.mlClassifier.config?.backend || 'hybrid' };
+    }
+
+    return stats;
   }
 }
 

@@ -205,10 +205,54 @@
   </div>
 
   <div class="setting">
+    <label for="mlBackend">⚙️ Technique</label>
+    <select id="mlBackend">
+      <option value="rules">Rules based</option>
+      <option value="ollama">Ollama</option>
+      <option value="tensorflow" selected>TensorFlow</option>
+      <option value="automatic">Automatic</option>
+    </select>
+    <div id="mlStatus" style="font-size: 11px; color: #666; margin-top: 4px;">
+      Loading ML backend...
+    </div>
+  </div>
+
+  <div class="setting" id="ollamaSettings" style="display: none;">
+    <label for="ollamaEndpoint">Ollama Endpoint</label>
+    <input type="text" id="ollamaEndpoint" value="http://127.0.0.1:11434" placeholder="http://127.0.0.1:11434"
+      style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+    <div style="margin-top: 8px;">
+      <label for="ollamaModel">Model</label>
+      <select id="ollamaModel" style="font-size: 12px;">
+        <option value="llama3.2:1b" selected>Llama 3.2 1B (Fast, Recommended)</option>
+        <option value="llama3.2:latest">Llama 3.2 Latest</option>
+        <option value="llama3.2:3b">Llama 3.2 3B (Balanced)</option>
+        <option value="llama3.1:8b">Llama 3.1 8B (Accurate)</option>
+        <option value="qwen2.5:1.5b">Qwen 2.5 1.5B (Fast)</option>
+        <option value="qwen2.5:3b">Qwen 2.5 3B (Balanced)</option>
+      </select>
+    </div>
+    <button class="btn btn-secondary" id="testOllama" style="margin-top: 8px; font-size: 11px; padding: 4px 8px;">
+      🔧 Test Connection
+    </button>
+    <div id="ollamaStatus" style="font-size: 10px; margin-top: 4px; color: #666;"></div>
+  </div>
+
+  <div class="setting">
     <div class="toggle">
       <label for="showStats">Show stats counter</label>
       <label class="switch">
         <input type="checkbox" id="showStats" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="setting">
+    <div class="toggle">
+      <label for="mlTrainingMode">🎓 Training Mode (Learn from feedback)</label>
+      <label class="switch">
+        <input type="checkbox" id="mlTrainingMode">
         <span class="slider"></span>
       </label>
     </div>

@@ -355,7 +355,16 @@ class PostAction {
    */
   revealPost(postId) {
     const hiddenPost = this.hiddenPosts.get(postId);
-    if (!hiddenPost) return;
+    if (!hiddenPost) {
+      console.warn(`ShutUpLinkedIn: Attempted to reveal non-existent post ${postId}`);
+      return;
+    }
+
+    // Check if post is already revealed to prevent duplicates
+    if (this.revealedPosts.has(postId)) {
+      console.warn(`ShutUpLinkedIn: Post ${postId} is already revealed`);
+      return;
+    }
 
     // Show original post
     hiddenPost.originalElement.classList.remove('shutup-hidden');
@@ -389,6 +398,22 @@ class PostAction {
    * Adds the re-hide button to the post's control menu area
    */
   addReHideButtonToPost(postElement, reHideButton) {
+    // Check if a re-hide button already exists and remove it to prevent duplicates
+    const existingButtons = postElement.querySelectorAll('.shutup-rehide-btn');
+    existingButtons.forEach(btn => {
+      if (btn.parentNode) {
+        btn.parentNode.removeChild(btn);
+      }
+    });
+
+    // Also remove any existing containers
+    const existingContainers = postElement.querySelectorAll('.shutup-rehide-container');
+    existingContainers.forEach(container => {
+      if (container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+    });
+
     // Find the control menu area (where the three dots and hide button are)
     const controlMenu = postElement.querySelector('.feed-shared-control-menu');
 
@@ -631,6 +656,51 @@ class PostAction {
         preview: post.preview,
         hiddenAt: new Date(post.hiddenAt).toLocaleString()
       }));
+  }
+
+  /**
+   * Cleans up duplicate re-hide buttons that might exist on the page
+   */
+  cleanupDuplicateButtons() {
+    const allReHideButtons = document.querySelectorAll('.shutup-rehide-btn');
+    const postIdToButtons = new Map();
+
+    // Group buttons by post ID
+    allReHideButtons.forEach(button => {
+      const postId = button.dataset.postId;
+      if (!postId) return;
+
+      if (!postIdToButtons.has(postId)) {
+        postIdToButtons.set(postId, []);
+      }
+      postIdToButtons.get(postId).push(button);
+    });
+
+    // Remove duplicate buttons, keeping only the first one for each post
+    postIdToButtons.forEach((buttons, postId) => {
+      if (buttons.length > 1) {
+        console.log(`ShutUpLinkedIn: Found ${buttons.length} duplicate buttons for post ${postId}, cleaning up...`);
+
+        // Remove all but the first button
+        for (let i = 1; i < buttons.length; i++) {
+          const button = buttons[i];
+          if (button.parentNode) {
+            button.parentNode.removeChild(button);
+          }
+        }
+      }
+    });
+
+    // Also clean up orphaned containers
+    const containers = document.querySelectorAll('.shutup-rehide-container');
+    containers.forEach(container => {
+      if (!container.querySelector('.shutup-rehide-btn')) {
+        // Container is empty, remove it
+        if (container.parentNode) {
+          container.parentNode.removeChild(container);
+        }
+      }
+    });
   }
 }
 
