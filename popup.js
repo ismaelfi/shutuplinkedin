@@ -8,7 +8,9 @@ class PopupController {
       mlBackend: 'automatic',
       mlTrainingMode: false,
       ollamaEndpoint: 'http://127.0.0.1:11434',
-      ollamaModel: 'llama3.2:1b'
+      ollamaModel: 'llama3.2:1b',
+      stealthEnabled: true,
+      stealthLevel: 'medium'
     };
 
     this.init();
@@ -61,6 +63,9 @@ class PopupController {
     document.getElementById('showStats').checked = this.settings.showStats;
     document.getElementById('hiddenCount').textContent = this.settings.hiddenCount || 0;
 
+    // Update stealth settings
+    document.getElementById('stealthEnabled').checked = this.settings.stealthEnabled;
+
     // Update ML settings
     document.getElementById('mlBackend').value = this.settings.mlBackend;
     document.getElementById('mlTrainingMode').checked = this.settings.mlTrainingMode;
@@ -72,6 +77,9 @@ class PopupController {
 
     // Update ML status
     this.updateMLStatus();
+
+    // Start stealth monitoring
+    this.monitorStealthStatus();
   }
 
   bindEvents() {
@@ -103,6 +111,14 @@ class PopupController {
       this.collectSettings();
       this.saveSettings();
     });
+
+    // Stealth settings events
+    document.getElementById('stealthEnabled').addEventListener('change', () => {
+      this.collectSettings();
+      this.saveSettings();
+    });
+
+
 
     // ML settings events
     document.getElementById('mlBackend').addEventListener('change', () => {
@@ -148,6 +164,10 @@ class PopupController {
     this.settings.enabled = document.getElementById('enabled').checked;
     this.settings.aggressiveness = document.getElementById('aggressiveness').value;
     this.settings.showStats = document.getElementById('showStats').checked;
+
+    // Stealth settings
+    this.settings.stealthEnabled = document.getElementById('stealthEnabled').checked;
+
     this.settings.mlBackend = document.getElementById('mlBackend').value;
     this.settings.mlTrainingMode = document.getElementById('mlTrainingMode').checked;
     this.settings.ollamaEndpoint = document.getElementById('ollamaEndpoint').value;
@@ -169,7 +189,7 @@ class PopupController {
 
   showHelp() {
     const helpContent = `
-ShutUpLinkedIn automatically detects and hides low-value posts using:
+🤫 ShutUpLinkedIn automatically detects and hides low-value posts using:
 
 • Engagement bait detection ("Agree?" "Thoughts?")
 • Humble bragging patterns
@@ -178,10 +198,21 @@ ShutUpLinkedIn automatically detects and hides low-value posts using:
 • Generic motivational content
 • Corporate buzzword spam
 
-Aggressiveness levels:
+🌍 Multi-Language Support:
+• Supports 14+ languages with native detection
+• Language-specific bait patterns for accurate detection
+• Automatic language detection for posts
+• Cultural context awareness for different LinkedIn markets
+
+⚙️ Aggressiveness levels:
 • Low: Only obvious spam and engagement bait
 • Medium: Recommended balance of filtering
 • High: More aggressive filtering of low-value content
+
+🤖 AI Integration:
+• Ollama: Local AI for privacy-conscious detection
+• TensorFlow: Fast in-browser machine learning
+• Automatic: Smart fallback between methods
 
 Posts are hidden with a summary - you can always click "Show anyway" to view them.
     `;
@@ -383,6 +414,64 @@ Posts are hidden with a summary - you can always click "Show anyway" to view the
       button.textContent = originalText;
       button.disabled = false;
     }
+  }
+
+  // Monitor stealth status
+  async monitorStealthStatus() {
+    try {
+      const tabs = await chrome.tabs.query({
+        url: ["https://*.linkedin.com/*"],
+        active: true
+      });
+
+      if (tabs.length === 0) {
+        document.getElementById('stealthStatusText').textContent = 'Status: No LinkedIn tab active';
+        document.getElementById('riskLevel').textContent = 'Unknown';
+        return;
+      }
+
+      // Request stealth status from content script
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: 'GET_STEALTH_STATUS'
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          document.getElementById('stealthStatusText').textContent = 'Status: Extension not loaded';
+          document.getElementById('riskLevel').textContent = 'Unknown';
+          return;
+        }
+
+        if (response && response.stealthStatus) {
+          const status = response.stealthStatus;
+          const riskLevel = status.riskLevel || 0;
+
+          document.getElementById('stealthStatusText').textContent =
+            `Status: ${status.active ? 'Active' : 'Inactive'}`;
+
+          // Update risk level with color coding
+          const riskElement = document.getElementById('riskLevel');
+          if (riskLevel < 0.3) {
+            riskElement.textContent = 'Low';
+            riskElement.style.color = '#28a745';
+          } else if (riskLevel < 0.7) {
+            riskElement.textContent = 'Medium';
+            riskElement.style.color = '#ffc107';
+          } else {
+            riskElement.textContent = 'High';
+            riskElement.style.color = '#dc3545';
+          }
+        } else {
+          document.getElementById('stealthStatusText').textContent = 'Status: Not available';
+          document.getElementById('riskLevel').textContent = 'Unknown';
+        }
+      });
+
+    } catch (error) {
+      document.getElementById('stealthStatusText').textContent = 'Status: Error';
+      document.getElementById('riskLevel').textContent = 'Unknown';
+    }
+
+    // Update every 5 seconds
+    setTimeout(() => this.monitorStealthStatus(), 5000);
   }
 }
 

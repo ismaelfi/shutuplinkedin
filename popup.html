@@ -205,6 +205,46 @@
   </div>
 
   <div class="setting">
+    <label>🌍 Language Detection</label>
+    <div style="background: #f8f9fa; border-radius: 4px; padding: 8px; font-size: 12px; color: #666;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="color: #28a745; font-weight: bold;">●</span>
+        Automatic detection enabled
+      </div>
+      <div style="margin-top: 4px; font-size: 11px;">
+        Supports 14+ languages including English, French, Spanish, German, Italian, Portuguese, and more. Each post is
+        automatically analyzed in its native language for optimal accuracy.
+      </div>
+    </div>
+  </div>
+  
+  <div class="setting">
+    <div class="toggle">
+      <label for="stealthEnabled">🛡️ Stealth Mode (Anti-detection)</label>
+      <label class="switch">
+        <input type="checkbox" id="stealthEnabled" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div style="background: #fff3cd; border-radius: 4px; padding: 8px; font-size: 12px; color: #856404; margin-top: 8px;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="color: #ffc107; font-weight: bold;">⚠️</span>
+        <strong>Recommended:</strong> Prevents LinkedIn detection
+      </div>
+      <div style="margin-top: 4px; font-size: 11px;">
+        Adds human-like delays and randomization to avoid automated tool warnings. May slightly slow down filtering.
+      </div>
+      <div id="stealthStatus" style="margin-top: 6px; font-size: 11px;">
+        <span id="stealthStatusText">Status: Loading...</span>
+        <div style="margin-top: 2px;">
+          <span style="color: #666;">Risk Level:</span>
+          <span id="riskLevel" style="font-weight: bold;">Low</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setting">
     <label for="mlBackend">⚙️ Technique</label>
     <select id="mlBackend">
       <option value="rules">Rules based</option>

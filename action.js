@@ -20,9 +20,23 @@ class PostAction {
   /**
    * Hides a post and shows replacement element
    */
-  hidePost(postElement, score, preview, reasons = []) {
+  async hidePost(postElement, score, preview, reasons = []) {
+    // Use stealth mode for DOM modifications
+    if (window.stealthMode) {
+      return await window.stealthMode.stealthOperation(async () => {
+        return this.performHidePost(postElement, score, preview, reasons);
+      }, 'hide');
+    } else {
+      return this.performHidePost(postElement, score, preview, reasons);
+    }
+  }
+
+  performHidePost(postElement, score, preview, reasons = []) {
+    // Use randomized class names if available
+    const hiddenClass = window.stealthMode?.classNames?.hidden || 'shutup-hidden';
+
     // Add hidden class
-    postElement.classList.add('shutup-hidden');
+    postElement.classList.add(hiddenClass);
 
     // Generate unique ID for this post
     const postId = this.generatePostId(postElement);
@@ -43,7 +57,8 @@ class PostAction {
       score: score,
       preview: preview,
       authorInfo: authorInfo,
-      hiddenAt: Date.now()
+      hiddenAt: Date.now(),
+      hiddenClass: hiddenClass
     });
 
     // Remove from revealed posts if it was there

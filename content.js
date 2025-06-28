@@ -84,20 +84,42 @@ if (window.shutUpLinkedInInitialized) {
               backend: this.settings.mlBackend || 'rules'
             });
             break;
+
+          case 'GET_STEALTH_STATUS':
+            sendResponse({
+              stealthStatus: window.stealthMode ? window.stealthMode.getStatus() : {
+                active: false,
+                riskLevel: 0,
+                counters: { domModifications: 0, rapidClicks: 0, suspiciousPatterns: 0 },
+                timings: { scanInterval: 2000, minDelay: 500, maxDelay: 3000 }
+              }
+            });
+            break;
         }
       });
     }
 
     startMonitoring() {
-      // Initial scan
-      this.scanAndHidePosts();
+      // Initial scan with stealth delay
+      setTimeout(() => {
+        this.scanAndHidePosts();
+      }, 1000 + Math.random() * 2000);
 
-      // Periodic scanning for new posts
-      setInterval(() => {
-        if (this.settings.enabled) {
-          this.scanAndHidePosts();
-        }
-      }, 2000);
+      // Periodic scanning with randomized intervals for stealth
+      const scheduleNextScan = () => {
+        const interval = window.stealthMode ?
+          window.stealthMode.timing.scanInterval :
+          2000 + Math.random() * 2000;
+
+        setTimeout(() => {
+          if (this.settings.enabled && (!window.stealthMode || window.stealthMode.isActive)) {
+            this.scanAndHidePosts();
+          }
+          scheduleNextScan(); // Schedule next scan
+        }, interval);
+      };
+
+      scheduleNextScan();
     }
 
     observeChanges() {
@@ -135,7 +157,18 @@ if (window.shutUpLinkedInInitialized) {
       });
     }
 
-    scanAndHidePosts() {
+    async scanAndHidePosts() {
+      // Use stealth mode for DOM operations
+      if (window.stealthMode) {
+        await window.stealthMode.stealthOperation(async () => {
+          this.performScan();
+        }, 'scan');
+      } else {
+        this.performScan();
+      }
+    }
+
+    performScan() {
       // Clean up any duplicate buttons before scanning for new posts
       this.postAction.cleanupDuplicateButtons();
 
@@ -146,9 +179,17 @@ if (window.shutUpLinkedInInitialized) {
         '.occludable-update'
       ];
 
+      let processedCount = 0;
+      const maxProcessPerScan = 5; // Limit processing to avoid detection
+
       postSelectors.forEach(selector => {
         const posts = document.querySelectorAll(selector);
-        posts.forEach(post => this.analyzePost(post));
+        posts.forEach(post => {
+          if (processedCount < maxProcessPerScan) {
+            this.analyzePost(post);
+            processedCount++;
+          }
+        });
       });
     }
 

@@ -159,31 +159,124 @@ class TrainingDataManager {
         text: "I'm going to delete this post in 24 hours, so SAVE it now! This changed my entire perspective on success.",
         label: 1,
         category: "deletion_urgency",
-        baitFeatures: ["deletion_threat", "save_urgency", "perspective_claim"]
+        baitFeatures: ["deletion_threat", "save_urgency", "perspective_claim"],
+        language: "en"
       },
       {
         text: "Most people won't read this entire post. If you're still reading, you're in the top 1%. Comment 'FOCUSED' below.",
         label: 1,
         category: "reading_challenge",
-        baitFeatures: ["reading_test", "exclusivity_claim", "comment_validation"]
+        baitFeatures: ["reading_test", "exclusivity_claim", "comment_validation"],
+        language: "en"
       },
       {
         text: "Plot twist: The advice everyone gives about networking is completely wrong. Here's what actually works...",
         label: 1,
         category: "plot_twist",
-        baitFeatures: ["plot_twist", "contrarian_hook", "secret_knowledge"]
+        baitFeatures: ["plot_twist", "contrarian_hook", "secret_knowledge"],
+        language: "en"
       },
       {
         text: "I've been quiet about this for months, but I can't stay silent anymore. This industry secret needs to be exposed.",
         label: 1,
         category: "silence_breaking",
-        baitFeatures: ["silence_break", "secret_exposure", "industry_revelation"]
+        baitFeatures: ["silence_break", "secret_exposure", "industry_revelation"],
+        language: "en"
       },
       {
         text: "STOP scrolling! This might be the most important post you read today. Your future self will thank you.",
         label: 1,
         category: "scroll_stopper",
-        baitFeatures: ["scroll_stop", "importance_claim", "future_self"]
+        baitFeatures: ["scroll_stop", "importance_claim", "future_self"],
+        language: "en"
+      },
+
+      // Multi-language bait examples
+      {
+        text: "🔥 COMMENTEZ OUI si vous êtes d'accord ! Cela va tout changer ! 🔥",
+        label: 1,
+        category: "cta_engagement",
+        baitFeatures: ["emoji_spam", "comment_demand", "urgency"],
+        language: "fr"
+      },
+      {
+        text: "Envoyez-moi un message pour le PDF que 99% des gens ne connaissent pas 📩",
+        label: 1,
+        category: "dm_bait",
+        baitFeatures: ["dm_request", "exclusivity_claim", "percentage_hook"],
+        language: "fr"
+      },
+      {
+        text: "¡COMENTA SÍ si estás de acuerdo! ¡Esto lo cambiará todo! 🔥",
+        label: 1,
+        category: "cta_engagement",
+        baitFeatures: ["comment_demand", "urgency", "emoji_spam"],
+        language: "es"
+      },
+      {
+        text: "Etiqueta a 3 amigos que necesitan ver esto 👇👇👇",
+        label: 1,
+        category: "viral_mechanics",
+        baitFeatures: ["tag_demand", "emoji_pointing", "viral_spread"],
+        language: "es"
+      },
+      {
+        text: "KOMMENTIERT JA, wenn ihr zustimmt! Das wird alles verändern! 🔥",
+        label: 1,
+        category: "cta_engagement",
+        baitFeatures: ["comment_demand", "urgency", "emoji_spam"],
+        language: "de"
+      },
+      {
+        text: "Schreibt mir für das PDF, das 99% der Leute nicht kennen 📩",
+        label: 1,
+        category: "dm_bait",
+        baitFeatures: ["dm_request", "exclusivity_claim", "percentage_hook"],
+        language: "de"
+      },
+
+      // Multi-language genuine content examples
+      {
+        text: "Je viens de lancer ma startup et j'ai appris ces leçons précieuses sur l'adéquation produit-marché.",
+        label: 0,
+        category: "genuine_experience",
+        baitFeatures: [],
+        language: "fr"
+      },
+      {
+        text: "Voici mon analyse détaillée des tendances actuelles du marché dans l'industrie SaaS.",
+        label: 0,
+        category: "industry_analysis",
+        baitFeatures: [],
+        language: "fr"
+      },
+      {
+        text: "Acabo de lanzar mi startup y aprendí estas valiosas lecciones sobre el ajuste producto-mercado.",
+        label: 0,
+        category: "genuine_experience",
+        baitFeatures: [],
+        language: "es"
+      },
+      {
+        text: "Compartiendo mi experiencia de 10 años en la industria tech y conocimientos clave sobre el escalado de equipos.",
+        label: 0,
+        category: "professional_sharing",
+        baitFeatures: [],
+        language: "es"
+      },
+      {
+        text: "Ich habe gerade mein Startup gelauncht und diese wertvollen Lektionen über Product-Market-Fit gelernt.",
+        label: 0,
+        category: "genuine_experience",
+        baitFeatures: [],
+        language: "de"
+      },
+      {
+        text: "Hier ist meine detaillierte Analyse der aktuellen Markttrends in der SaaS-Industrie.",
+        label: 0,
+        category: "industry_analysis",
+        baitFeatures: [],
+        language: "de"
       }
     ];
   }

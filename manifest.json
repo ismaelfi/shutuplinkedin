@@ -18,6 +18,8 @@
     {
       "matches": ["https://*.linkedin.com/*"],
       "js": [
+        "stealth.js",
+        "ml/languageSupport.js",
         "ml/trainingData.js",
         "ml/ollama/config.js",
         "ml/ollama/prompts.js",

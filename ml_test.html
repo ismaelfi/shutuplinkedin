@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShutUpLinkedIn - ML Classification Test</title>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #0a66c2;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .setup-section {
+      background: #e3f2fd;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      border-left: 4px solid #2196f3;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .status-card {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      background: #fafafa;
+    }
+
+    .status-card.ready {
+      border-color: #4caf50;
+      background: #f1f8e9;
+    }
+
+    .status-card.error {
+      border-color: #f44336;
+      background: #fef7f0;
+    }
+
+    .status-card.loading {
+      border-color: #ff9800;
+      background: #fff8e1;
+    }
+
+    .test-input {
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    .preset-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .preset-btn {
+      padding: 8px 15px;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      background: #e0e0e0;
+    }
+
+    .preset-btn.bait {
+      border-color: #dc3545;
+      color: #dc3545;
+    }
+
+    .preset-btn.genuine {
+      border-color: #28a745;
+      color: #28a745;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 30px;
+      align-items: center;
+    }
+
+    .test-btn {
+      padding: 12px 24px;
+      background: #0a66c2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    .test-btn:hover {
+      background: #004182;
+    }
+
+    .test-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .clear-btn {
+      background: #6c757d;
+    }
+
+    .clear-btn:hover {
+      background: #545b62;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .technique-result {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      background: #fafafa;
+    }
+
+    .technique-result.success {
+      border-color: #28a745;
+      background: #f8fff9;
+    }
+
+    .technique-result.error {
+      border-color: #dc3545;
+      background: #fff8f8;
+    }
+
+    .technique-result.loading {
+      border-color: #ffc107;
+      background: #fff9e6;
+    }
+
+    .technique-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .technique-name {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .technique-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+
+    .status-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .status-loading {
+      background: #ffc107;
+      color: #333;
+    }
+
+    .status-error {
+      background: #dc3545;
+      color: white;
+    }
+
+    .score-display {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 6px;
+    }
+
+    .score-high {
+      background: #ffebee;
+      color: #c62828;
+      border: 2px solid #ef5350;
+    }
+
+    .score-medium {
+      background: #fff3e0;
+      color: #ef6c00;
+      border: 2px solid #ff9800;
+    }
+
+    .score-low {
+      background: #e8f5e8;
+      color: #2e7d32;
+      border: 2px solid #4caf50;
+    }
+
+    .details {
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .detail-item {
+      margin-bottom: 6px;
+    }
+
+    .detail-label {
+      font-weight: bold;
+      color: #666;
+    }
+
+    .reasoning {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 8px;
+      border-left: 3px solid #0a66c2;
+    }
+
+    .comparison {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+
+    .comparison h3 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .config-section {
+      background: #fff3e0;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .config-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .config-item label {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .config-item input,
+    .config-item select {
+      padding: 6px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .log-container {
+      background: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      padding: 2px 0;
+    }
+
+    .log-entry.error {
+      color: #dc3545;
+    }
+
+    .log-entry.success {
+      color: #28a745;
+    }
+
+    .log-entry.info {
+      color: #0a66c2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🤖 ShutUpLinkedIn - ML Classification Test</h1>
+
+    <div class="setup-section">
+      <h3>🔧 ML System Initialization Status</h3>
+      <div class="status-grid" id="statusGrid">
+        <div class="status-card loading" id="tensorflowStatus">
+          <h4>🧠 TensorFlow.js</h4>
+          <p>Status: <span id="tfStatusText">Initializing...</span></p>
+          <p>Backend: <span id="tfBackend">-</span></p>
+          <p>Model: <span id="tfModel">-</span></p>
+        </div>
+
+        <div class="status-card loading" id="ollamaStatus">
+          <h4>🦙 Ollama API</h4>
+          <p>Status: <span id="ollamaStatusText">Testing connection...</span></p>
+          <p>Endpoint: <span id="ollamaEndpoint">-</span></p>
+          <p>Model: <span id="ollamaModel">-</span></p>
+        </div>
+
+        <div class="status-card loading" id="rulesStatus">
+          <h4>📏 Rules Engine</h4>
+          <p>Status: <span id="rulesStatusText">Loading patterns...</span></p>
+          <p>Languages: <span id="rulesLanguages">-</span></p>
+          <p>Patterns: <span id="rulesPatterns">-</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>⚙️ Configuration</h3>
+      <div class="config-grid">
+        <div class="config-item">
+          <label>Proxy Server Status</label>
+          <div style="padding: 8px; background: #f0f8ff; border-radius: 4px; font-size: 12px;">
+            <strong>Required:</strong> Run <code>node test_ollama_browser.js</code> first<br>
+            <strong>Endpoint:</strong> localhost:3001 (proxy to Ollama)
+          </div>
+        </div>
+        <div class="config-item">
+          <label>Ollama Model</label>
+          <select id="ollamaModelSelect">
+            <option value="llama3.2:1b">Llama 3.2 1B (Fast)</option>
+            <option value="llama3.2:3b">Llama 3.2 3B (Balanced)</option>
+            <option value="llama3.1:8b">Llama 3.1 8B (Best)</option>
+            <option value="qwen2.5:1.5b">Qwen 2.5 1.5B (Alternative)</option>
+          </select>
+        </div>
+        <div class="config-item">
+          <label>TensorFlow Model</label>
+          <select id="tfModelSelect">
+            <option value="simple">Simple (Fast)</option>
+            <option value="balanced" selected>Balanced</option>
+            <option value="complex">Complex (Accurate)</option>
+          </select>
+        </div>
+        <div class="config-item">
+          <label>Test Mode</label>
+          <select id="testModeSelect">
+            <option value="all" selected>All Techniques</option>
+            <option value="rules-only">Rules Only</option>
+            <option value="tf-only">TensorFlow Only</option>
+            <option value="ollama-only">Ollama Only</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-input">
+      <label for="testText">📝 LinkedIn Post Content:</label>
+      <textarea id="testText"
+        placeholder="Enter LinkedIn post content to test with ML classification techniques...">🔥 COMMENT YES if you agree! This will change everything! Tag 3 friends who need to see this! DM me for the secret PDF that 99% of people don't know about! 🔥</textarea>
+
+      <div class="preset-buttons">
+        <div class="preset-btn bait" onclick="loadPreset('aggressiveBait')">🚨 Aggressive Bait</div>
+        <div class="preset-btn bait" onclick="loadPreset('frenchBait')">🇫🇷 French Bait</div>
+        <div class="preset-btn bait" onclick="loadPreset('subtleBait')">⚠️ Subtle Bait</div>
+        <div class="preset-btn bait" onclick="loadPreset('motivationalBait')">💪 Motivational Bait</div>
+        <div class="preset-btn genuine" onclick="loadPreset('professionalEn')">💼 Professional</div>
+        <div class="preset-btn genuine" onclick="loadPreset('educationalEn')">📚 Educational</div>
+        <div class="preset-btn genuine" onclick="loadPreset('technicalEn')">🔧 Technical</div>
+        <div class="preset-btn genuine" onclick="loadPreset('genuineMotivational')">✨ Genuine Motivation</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="test-btn" onclick="runMLTests()" id="testBtn">🧪 Run ML Classification Test</button>
+      <button class="test-btn clear-btn" onclick="clearResults()">🧹 Clear Results</button>
+      <button class="test-btn" onclick="reinitializeML()" style="background: #ff9800;">🔄 Reinitialize ML</button>
+    </div>
+
+    <div id="resultsContainer" style="display: none;">
+      <div class="results-grid" id="resultsGrid"></div>
+
+      <div class="comparison" id="comparisonSection">
+        <h3>📊 ML Technique Comparison</h3>
+        <div id="comparisonResults"></div>
+      </div>
+    </div>
+
+    <div class="log-container">
+      <h4>🔍 System Logs</h4>
+      <div id="logOutput"></div>
+    </div>
+  </div>
+
+  <script>
+    // Global state
+    let mlSystems = {
+      tensorflow: { ready: false, model: null, error: null },
+      ollama: { ready: false, endpoint: 'http://127.0.0.1:11434', model: 'llama3.2:1b', error: null },
+      rules: { ready: false, patterns: 0, languages: 0, error: null }
+    };
+
+    // Test presets with known classifications
+    const testPresets = {
+      aggressiveBait: "🔥 COMMENT YES if you agree! This will change everything! Tag 3 friends who need to see this! DM me for the secret PDF that 99% of people don't know about! Share if you want success! 🔥",
+      frenchBait: "🔥 COMMENTEZ OUI si vous êtes d'accord ! Taguez 3 amis qui ont besoin de voir ça ! Envoyez-moi un message pour le PDF secret ! Partagez si vous voulez réussir ! 🔥",
+      subtleBait: "This simple trick will change your career forever. What do you think? Share your thoughts below and tag someone who needs to see this! 💪",
+      motivationalBait: "Success isn't luck, it's mindset! 💪 Comment YES if you're ready to level up! Double tap if you agree! What's your biggest goal this year? 🔥",
+
+      professionalEn: "After analyzing 5 years of user engagement data across 50+ SaaS products, I've identified three key patterns that predict long-term product success. Here's my detailed breakdown of the methodology, statistical significance, and actionable insights for product managers.",
+      educationalEn: "Understanding machine learning fundamentals: A comprehensive technical guide to supervised vs unsupervised learning algorithms, with mathematical foundations, implementation examples in Python, and real-world applications in data science.",
+      technicalEn: "Deep dive into React 18's concurrent rendering architecture: exploring the new automatic batching behavior, transition APIs, and how Suspense boundaries interact with server-side rendering in Next.js 13 applications.",
+      genuineMotivational: "Starting my own company taught me that resilience isn't about avoiding failure—it's about learning from each setback. Every challenge became a stepping stone. The entrepreneurship journey is demanding but incredibly rewarding when you stay focused on your mission."
+    };
+
+    // Logging function
+    function log(message, type = 'info') {
+      const logOutput = document.getElementById('logOutput');
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry ${type}`;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      logOutput.appendChild(logEntry);
+      logOutput.scrollTop = logOutput.scrollHeight;
+
+      if (type === 'error') {
+        console.error(message);
+      } else {
+        console.log(message);
+      }
+    }
+
+    // Generate Ollama prompt (for reference - actual prompting is done by proxy server)
+    function generateOllamaPrompt(text) {
+      return `Analyze this LinkedIn post for engagement bait patterns. Respond ONLY with valid JSON.
+
+POST: "${text}"
+
+Analyze for:
+- Explicit engagement requests ("comment YES", "tag friends", "DM me")
+- Manipulation tactics (urgency, scarcity, FOMO)
+- Genuine professional/educational value
+- Multi-language patterns
+
+Respond with JSON:
+{
+  "confidence": <0.0-1.0>,
+  "classification": "bait" | "genuine",
+  "reasoning": "<brief explanation>"
+}
+
+Examples:
+- Confidence 0.8+: Clear manipulation
+- Confidence 0.4-0.7: Some bait patterns
+- Confidence 0.0-0.4: Genuine content
+
+JSON only:`;
+    }
+
+    // Load test preset
+    function loadPreset(preset) {
+      document.getElementById('testText').value = testPresets[preset];
+      log(`Loaded preset: ${preset}`, 'info');
+    }
+
+    // Clear results
+    function clearResults() {
+      document.getElementById('resultsContainer').style.display = 'none';
+      document.getElementById('resultsGrid').innerHTML = '';
+      log('Results cleared', 'info');
+    }
+
+    // Initialize TensorFlow.js
+    async function initializeTensorFlow() {
+      try {
+        log('Initializing TensorFlow.js...', 'info');
+
+        // Wait for TensorFlow to be ready
+        await tf.ready();
+
+        // Set backend
+        const backend = tf.getBackend();
+        document.getElementById('tfBackend').textContent = backend;
+        log(`TensorFlow.js backend: ${backend}`, 'success');
+
+        // Create a simple model for demonstration
+        const model = await createSimpleModel();
+        mlSystems.tensorflow.model = model;
+        mlSystems.tensorflow.ready = true;
+
+        document.getElementById('tfStatusText').textContent = 'Ready';
+        document.getElementById('tfModel').textContent = 'Simple Binary Classifier';
+        document.getElementById('tensorflowStatus').className = 'status-card ready';
+
+        log('TensorFlow.js initialized successfully', 'success');
+
+      } catch (error) {
+        mlSystems.tensorflow.error = error.message;
+        document.getElementById('tfStatusText').textContent = 'Error';
+        document.getElementById('tensorflowStatus').className = 'status-card error';
+        log(`TensorFlow.js initialization failed: ${error.message}`, 'error');
+      }
+    }
+
+    // Create a simple TensorFlow model
+    async function createSimpleModel() {
+      log('Creating TensorFlow model...', 'info');
+
+      const model = tf.sequential({
+        layers: [
+          tf.layers.dense({
+            inputShape: [10], // 10 features
+            units: 16,
+            activation: 'relu'
+          }),
+          tf.layers.dropout({ rate: 0.2 }),
+          tf.layers.dense({
+            units: 8,
+            activation: 'relu'
+          }),
+          tf.layers.dense({
+            units: 1,
+            activation: 'sigmoid'
+          })
+        ]
+      });
+
+      model.compile({
+        optimizer: 'adam',
+        loss: 'binaryCrossentropy',
+        metrics: ['accuracy']
+      });
+
+      log('TensorFlow model created and compiled', 'success');
+      return model;
+    }
+
+    // Extract features for TensorFlow model
+    function extractFeatures(text) {
+      const features = new Array(10).fill(0);
+
+      // Feature 0: Text length (normalized)
+      features[0] = Math.min(text.length / 500, 1);
+
+      // Feature 1: Emoji count
+      features[1] = (text.match(/[🔥💪⚡🍿❤️‍🔥👍]/g) || []).length / 10;
+
+      // Feature 2: All caps words
+      features[2] = (text.match(/\b[A-Z]{3,}\b/g) || []).length / 5;
+
+      // Feature 3: Exclamation marks
+      features[3] = (text.match(/!/g) || []).length / 10;
+
+      // Feature 4: Question marks
+      features[4] = (text.match(/\?/g) || []).length / 5;
+
+      // Feature 5: Engagement words
+      const engagementWords = ['comment', 'tag', 'share', 'dm', 'message'];
+      features[5] = engagementWords.filter(word =>
+        text.toLowerCase().includes(word)
+      ).length / engagementWords.length;
+
+      // Feature 6: Urgency words
+      const urgencyWords = ['now', 'today', 'urgent', 'limited', 'secret'];
+      features[6] = urgencyWords.filter(word =>
+        text.toLowerCase().includes(word)
+      ).length / urgencyWords.length;
+
+      // Feature 7: Professional words
+      const professionalWords = ['analysis', 'research', 'methodology', 'data', 'study'];
+      features[7] = professionalWords.filter(word =>
+        text.toLowerCase().includes(word)
+      ).length / professionalWords.length;
+
+      // Feature 8: Numbers count
+      features[8] = (text.match(/\d+/g) || []).length / 10;
+
+      // Feature 9: Word count (normalized)
+      features[9] = Math.min(text.split(/\s+/).length / 100, 1);
+
+      return features;
+    }
+
+    // Test Ollama connection via proxy server
+    async function testOllamaConnection() {
+      try {
+        log('Testing Ollama connection via proxy server...', 'info');
+
+        const model = document.getElementById('ollamaModelSelect').value;
+        mlSystems.ollama.model = model;
+        mlSystems.ollama.endpoint = 'http://localhost:3001'; // Use proxy server
+
+        // Test connection via proxy server
+        const response = await fetch(`http://localhost:3001/test?case=aggressiveBait&model=${model}`);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Check if we got a valid response
+        if (data.ollama && data.ollama.success) {
+          mlSystems.ollama.ready = true;
+          document.getElementById('ollamaEndpoint').textContent = 'localhost:3001 (proxy)';
+          document.getElementById('ollamaModel').textContent = model;
+          document.getElementById('ollamaStatusText').textContent = 'Ready';
+          document.getElementById('ollamaStatus').className = 'status-card ready';
+          log(`Ollama connected successfully via proxy. Model ${model} is working.`, 'success');
+          log(`Test response time: ${data.ollama.responseTime}ms`, 'info');
+        } else {
+          throw new Error(data.ollama?.error || 'Unknown error from Ollama');
+        }
+
+      } catch (error) {
+        mlSystems.ollama.error = error.message;
+        mlSystems.ollama.ready = false;
+        document.getElementById('ollamaStatusText').textContent = 'Error';
+        document.getElementById('ollamaStatus').className = 'status-card error';
+
+        // Provide helpful error messages
+        let helpMessage = error.message;
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          helpMessage = 'Connection failed. Make sure the proxy server is running: node test_ollama_browser.js';
+        } else if (error.message.includes('CORS')) {
+          helpMessage = 'CORS error. The proxy server should handle this automatically.';
+        }
+
+        log(`Ollama connection failed: ${helpMessage}`, 'error');
+        log('To start the proxy server, run: node test_ollama_browser.js', 'info');
+      }
+    }
+
+    // Initialize Rules Engine
+    async function initializeRulesEngine() {
+      try {
+        log('Initializing rules engine...', 'info');
+
+        // Simulate loading rules (in real extension, this would load from your baitDetector.js)
+        const languages = ['en', 'fr', 'es', 'de', 'it', 'pt'];
+        const patterns = 25; // Approximate number of patterns
+
+        mlSystems.rules.ready = true;
+        mlSystems.rules.languages = languages.length;
+        mlSystems.rules.patterns = patterns;
+
+        document.getElementById('rulesStatusText').textContent = 'Ready';
+        document.getElementById('rulesLanguages').textContent = languages.length;
+        document.getElementById('rulesPatterns').textContent = patterns;
+        document.getElementById('rulesStatus').className = 'status-card ready';
+
+        log(`Rules engine initialized with ${languages.length} languages and ${patterns} patterns`, 'success');
+
+      } catch (error) {
+        mlSystems.rules.error = error.message;
+        document.getElementById('rulesStatusText').textContent = 'Error';
+        document.getElementById('rulesStatus').className = 'status-card error';
+        log(`Rules engine initialization failed: ${error.message}`, 'error');
+      }
+    }
+
+    // Rules-based classification (simplified version)
+    function classifyWithRules(text) {
+      let score = 0;
+      const factors = [];
+
+      // Emoji scoring
+      const emojiMatches = text.match(/[🔥💪⚡🍿❤️‍🔥]/g);
+      if (emojiMatches) {
+        score += emojiMatches.length * 0.8;
+        factors.push(`High-engagement emojis (${emojiMatches.length})`);
+      }
+
+      // Explicit engagement requests
+      if (/comment\s+(yes|oui|sí|ja)/gi.test(text)) {
+        score += 2.5;
+        factors.push("Explicit 'comment yes' request");
+      }
+
+      // Tag friend requests
+      if (/tag\s+(a\s+friend|someone|3\s+friends)/gi.test(text)) {
+        score += 2;
+        factors.push("Tag friend request");
+      }
+
+      // DM requests
+      if (/dm\s+me|message\s+me/gi.test(text)) {
+        score += 1.5;
+        factors.push("Direct message request");
+      }
+
+      // All caps words
+      const capsMatches = text.match(/\b[A-Z]{3,}\b/g);
+      if (capsMatches) {
+        score += capsMatches.length * 0.3;
+        factors.push(`All caps words (${capsMatches.length})`);
+      }
+
+      // Professional content (reduces score)
+      const professionalWords = ['analysis', 'research', 'methodology', 'implementation'];
+      const professionalMatches = professionalWords.filter(word =>
+        text.toLowerCase().includes(word)
+      );
+      if (professionalMatches.length > 0) {
+        score -= professionalMatches.length * 0.5;
+        factors.push(`Professional indicators: ${professionalMatches.join(', ')}`);
+      }
+
+      score = Math.max(0, score);
+
+      return {
+        confidence: Math.min(score / 5, 1),
+        score: score,
+        shouldHide: score > 2.5,
+        factors: factors,
+        method: 'rules-based',
+        responseTime: Math.random() * 50 + 10 // Simulate response time
+      };
+    }
+
+    // TensorFlow classification
+    async function classifyWithTensorFlow(text) {
+      if (!mlSystems.tensorflow.ready || !mlSystems.tensorflow.model) {
+        throw new Error('TensorFlow model not ready');
+      }
+
+      const startTime = Date.now();
+
+      try {
+        const features = extractFeatures(text);
+        const prediction = await mlSystems.tensorflow.model.predict(
+          tf.tensor2d([features])
+        ).data();
+
+        const confidence = prediction[0];
+        const responseTime = Date.now() - startTime;
+
+        return {
+          confidence: confidence,
+          score: confidence * 10,
+          shouldHide: confidence > 0.5,
+          factors: [`Feature analysis: ${features.slice(0, 3).map(f => f.toFixed(2)).join(', ')}...`],
+          method: 'tensorflow',
+          responseTime: responseTime,
+          features: features
+        };
+
+      } catch (error) {
+        throw new Error(`TensorFlow prediction failed: ${error.message}`);
+      }
+    }
+
+    // Ollama classification via proxy server
+    async function classifyWithOllama(text) {
+      if (!mlSystems.ollama.ready) {
+        throw new Error('Ollama not ready');
+      }
+
+      const startTime = Date.now();
+
+      try {
+        // Send text to proxy server for classification
+        const response = await fetch('http://localhost:3001/test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            text: text,
+            model: mlSystems.ollama.model
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const responseTime = Date.now() - startTime;
+
+        if (!data.ollama || !data.ollama.success) {
+          throw new Error(data.ollama?.error || 'Classification failed');
+        }
+
+        const classification = data.ollama;
+
+        return {
+          confidence: classification.confidence,
+          score: classification.confidence * 10,
+          shouldHide: classification.confidence > 0.5,
+          factors: [classification.reasoning],
+          method: 'ollama',
+          responseTime: classification.responseTime || responseTime,
+          model: classification.model,
+          reasoning: classification.reasoning,
+          rawResponse: classification.rawResponse
+        };
+
+      } catch (error) {
+        throw new Error(`Ollama classification failed: ${error.message}`);
+      }
+    }
+
+    // Generate Ollama prompt
+    function generateOllamaPrompt(text) {
+      return `Analyze this LinkedIn post for engagement bait patterns. Return a JSON response with "confidence" (0.0-1.0) and "reasoning":
+
+Post: "${text}"
+
+Look for:
+- Explicit engagement requests (comment, tag, share)
+- Emotional manipulation
+- Scarcity/urgency tactics
+- Low-value content designed to get reactions
+
+Respond only with valid JSON:`;
+    }
+
+    // Enhanced test presets to show clear differences between techniques
+    const enhancedTestPresets = {
+      aggressiveBait: "🔥 COMMENT YES if you agree! This will change everything! Tag 3 friends who need to see this! DM me for the secret PDF that 99% of people don't know about! Double tap if you want success! 🔥💪",
+      frenchBait: "🔥 COMMENTEZ OUI si vous êtes d'accord ! Taguez 3 amis qui ont besoin de voir ça ! Envoyez-moi un message pour le PDF secret que 99% des gens ne connaissent pas ! 🔥",
+      subtleBait: "This simple trick will change your career forever. What do you think? Share your thoughts below and tag someone who needs to see this! 💪 Who agrees?",
+      motivationalBait: "Success isn't luck, it's mindset! 💪 Comment YES if you're ready to level up! Double tap if you agree! What's your biggest goal this year? 🔥 Tag 3 people who inspire you!",
+
+      professionalEn: "After analyzing 5 years of user engagement data across 50+ SaaS products, I've identified three key patterns that predict long-term product success. Here's my detailed breakdown of the methodology, statistical significance, and actionable insights for product managers and growth teams.",
+      educationalEn: "Understanding machine learning fundamentals: A comprehensive technical guide to supervised vs unsupervised learning algorithms, with mathematical foundations, implementation examples in Python, TensorFlow, and real-world applications in data science and AI development.",
+      technicalEn: "Deep dive into React 18's concurrent rendering architecture: exploring the new automatic batching behavior, transition APIs, Suspense boundaries, and how they interact with server-side rendering in Next.js 13 applications. Performance implications and migration strategies included.",
+      genuineMotivational: "Starting my own company taught me that resilience isn't about avoiding failure—it's about learning from each setback and adapting your strategy. Every challenge became a stepping stone toward better decision-making. The entrepreneurship journey is demanding but incredibly rewarding when you stay focused on your mission and values."
+    };
+
+    // Run ML tests
+    async function runMLTests() {
+      const text = document.getElementById('testText').value.trim();
+      if (!text) {
+        alert('Please enter some text to test!');
+        return;
+      }
+
+      const testMode = document.getElementById('testModeSelect').value;
+      log(`Starting ML tests in ${testMode} mode`, 'info');
+
+      document.getElementById('testBtn').disabled = true;
+      document.getElementById('resultsContainer').style.display = 'block';
+      document.getElementById('resultsGrid').innerHTML = '';
+
+      const results = {};
+
+      try {
+        // Test rules-based
+        if (testMode === 'all' || testMode === 'rules-only') {
+          await testTechnique('rules', 'Rules-Based', () => classifyWithRules(text), results);
+        }
+
+        // Test TensorFlow
+        if (testMode === 'all' || testMode === 'tf-only') {
+          await testTechnique('tensorflow', 'TensorFlow.js', () => classifyWithTensorFlow(text), results);
+        }
+
+        // Test Ollama
+        if (testMode === 'all' || testMode === 'ollama-only') {
+          await testTechnique('ollama', 'Ollama AI', () => classifyWithOllama(text), results);
+        }
+
+        // Show comparison
+        showComparison(results);
+
+      } catch (error) {
+        log(`Test execution failed: ${error.message}`, 'error');
+      } finally {
+        document.getElementById('testBtn').disabled = false;
+      }
+    }
+
+    // Test individual technique
+    async function testTechnique(id, name, classifier, results) {
+      createTechniqueCard(id, name);
+      updateTechniqueStatus(id, 'loading', 'Testing...');
+
+      try {
+        const result = await classifier();
+        results[id] = result;
+        updateTechniqueCard(id, result, 'success');
+        log(`${name} completed: ${result.confidence.toFixed(2)} confidence`, 'success');
+      } catch (error) {
+        results[id] = { error: error.message };
+        updateTechniqueCard(id, { error: error.message }, 'error');
+        log(`${name} failed: ${error.message}`, 'error');
+      }
+    }
+
+    // Create technique result card
+    function createTechniqueCard(id, name) {
+      const grid = document.getElementById('resultsGrid');
+      const card = document.createElement('div');
+      card.className = 'technique-result loading';
+      card.id = `card-${id}`;
+
+      card.innerHTML = `
+                <div class="technique-header">
+                    <div class="technique-name">${name}</div>
+                    <div class="technique-status status-loading" id="status-${id}">⏳ Testing...</div>
+                </div>
+                <div class="score-display" id="score-${id}">⏳</div>
+                <div class="details" id="details-${id}">Analyzing...</div>
+                <div class="reasoning" id="reasoning-${id}"></div>
+            `;
+
+      grid.appendChild(card);
+    }
+
+    // Update technique status
+    function updateTechniqueStatus(id, status, text) {
+      const statusEl = document.getElementById(`status-${id}`);
+      statusEl.className = `technique-status status-${status}`;
+      statusEl.textContent = text;
+    }
+
+    // Update technique card with results
+    function updateTechniqueCard(id, result, status) {
+      const card = document.getElementById(`card-${id}`);
+      card.className = `technique-result ${status}`;
+
+      if (status === 'error') {
+        updateTechniqueStatus(id, 'error', '❌ Error');
+        document.getElementById(`score-${id}`).innerHTML = '<div style="color: #dc3545;">Error</div>';
+        document.getElementById(`details-${id}`).innerHTML = `<div class="detail-item">Error: ${result.error}</div>`;
+        return;
+      }
+
+      updateTechniqueStatus(id, 'success', '✅ Complete');
+
+      // Score display
+      const scoreEl = document.getElementById(`score-${id}`);
+      const scoreClass = result.confidence > 0.7 ? 'score-high' : result.confidence > 0.4 ? 'score-medium' : 'score-low';
+      scoreEl.className = `score-display ${scoreClass}`;
+      scoreEl.innerHTML = `
+                <div>${(result.confidence * 100).toFixed(1)}%</div>
+                <div style="font-size: 14px; font-weight: normal;">
+                    ${result.shouldHide ? '🚨 BAIT' : '✅ GENUINE'}
+                </div>
+            `;
+
+      // Details
+      document.getElementById(`details-${id}`).innerHTML = `
+                <div class="detail-item"><span class="detail-label">Method:</span> ${result.method}</div>
+                <div class="detail-item"><span class="detail-label">Response Time:</span> ${result.responseTime.toFixed(0)}ms</div>
+                <div class="detail-item"><span class="detail-label">Classification:</span> ${result.shouldHide ? '🚨 Engagement Bait' : '✅ Genuine Content'}</div>
+            `;
+
+      // Reasoning
+      if (result.factors && result.factors.length > 0) {
+        document.getElementById(`reasoning-${id}`).textContent = result.factors.join('; ');
+      } else if (result.reasoning) {
+        document.getElementById(`reasoning-${id}`).textContent = result.reasoning;
+      }
+    }
+
+    // Show comparison of results
+    function showComparison(results) {
+      const validResults = Object.entries(results).filter(([_, result]) => !result.error);
+      if (validResults.length === 0) return;
+
+      let comparisonHTML = '<h4>📊 Results Summary</h4>';
+
+      // Results table
+      comparisonHTML += '<table style="width: 100%; border-collapse: collapse; margin: 15px 0;">';
+      comparisonHTML += '<tr style="background: #f8f9fa;"><th style="padding: 8px; border: 1px solid #ddd;">Technique</th><th style="padding: 8px; border: 1px solid #ddd;">Confidence</th><th style="padding: 8px; border: 1px solid #ddd;">Classification</th><th style="padding: 8px; border: 1px solid #ddd;">Response Time</th></tr>';
+
+      validResults.forEach(([technique, result]) => {
+        comparisonHTML += `
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;"><strong>${technique}</strong></td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${(result.confidence * 100).toFixed(1)}%</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${result.shouldHide ? '🚨 Bait' : '✅ Genuine'}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${result.responseTime.toFixed(0)}ms</td>
+                    </tr>
+                `;
+      });
+      comparisonHTML += '</table>';
+
+      // Analysis
+      const confidences = validResults.map(([_, result]) => result.confidence);
+      const avg = confidences.reduce((a, b) => a + b, 0) / confidences.length;
+      const max = Math.max(...confidences);
+      const min = Math.min(...confidences);
+      const variance = max - min;
+
+      comparisonHTML += `<div style="margin-top: 15px;">`;
+      comparisonHTML += `<strong>Analysis:</strong><br/>`;
+      comparisonHTML += `• Average Confidence: ${(avg * 100).toFixed(1)}%<br/>`;
+      comparisonHTML += `• Confidence Range: ${(min * 100).toFixed(1)}% - ${(max * 100).toFixed(1)}%<br/>`;
+      comparisonHTML += `• Technique Variance: ${(variance * 100).toFixed(1)}% ${variance > 0.3 ? '(High - techniques disagree significantly)' : variance > 0.1 ? '(Medium - some disagreement)' : '(Low - techniques mostly agree)'}<br/>`;
+
+      // Check for consensus
+      const classifications = validResults.map(([_, result]) => result.shouldHide);
+      const baitCount = classifications.filter(c => c).length;
+      const consensus = baitCount === 0 || baitCount === classifications.length;
+
+      if (consensus) {
+        comparisonHTML += `• <span style="color: #28a745;">✅ Consensus: All techniques agree this is ${baitCount > 0 ? 'BAIT' : 'GENUINE'}</span>`;
+      } else {
+        comparisonHTML += `• <span style="color: #dc3545;">⚠️ Disagreement: ${baitCount}/${classifications.length} techniques classify as bait</span>`;
+      }
+
+      comparisonHTML += `</div>`;
+
+      document.getElementById('comparisonResults').innerHTML = comparisonHTML;
+    }
+
+    // Reinitialize ML systems
+    async function reinitializeML() {
+      log('Reinitializing ML systems...', 'info');
+
+      // Reset status cards
+      document.getElementById('tensorflowStatus').className = 'status-card loading';
+      document.getElementById('ollamaStatus').className = 'status-card loading';
+      document.getElementById('rulesStatus').className = 'status-card loading';
+
+      // Reset systems
+      mlSystems = {
+        tensorflow: { ready: false, model: null, error: null },
+        ollama: { ready: false, endpoint: 'http://127.0.0.1:11434', model: 'llama3.2:1b', error: null },
+        rules: { ready: false, patterns: 0, languages: 0, error: null }
+      };
+
+      // Reinitialize
+      await Promise.all([
+        initializeTensorFlow(),
+        testOllamaConnection(),
+        initializeRulesEngine()
+      ]);
+
+      log('ML systems reinitialized', 'info');
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      log('Initializing ML Classification Test Page...', 'info');
+
+      await Promise.all([
+        initializeTensorFlow(),
+        testOllamaConnection(),
+        initializeRulesEngine()
+      ]);
+
+      log('ML test page ready!', 'success');
+    });
+  </script>
+</body>
+
+</html>

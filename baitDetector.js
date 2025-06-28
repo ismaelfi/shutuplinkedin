@@ -7,6 +7,9 @@ class BaitDetector {
     this.mlClassifier = null;
     this.initializeML();
 
+    // Initialize language support
+    this.languageSupport = new LanguageSupport();
+
     this.engagementBaitPatterns = [
       // Direct engagement bait
       /agree\s*\?/i,
@@ -114,14 +117,18 @@ class BaitDetector {
     const textLower = text.toLowerCase();
     const textLength = text.length;
 
-    // 1. Check engagement bait patterns (high penalty)
+    // 1. Language-aware analysis
+    const langAnalysis = this.languageSupport.scoreTextByLanguage(text);
+    score += langAnalysis.score;
+
+    // 2. Check engagement bait patterns (high penalty) - use original patterns as fallback
     this.engagementBaitPatterns.forEach(pattern => {
       if (pattern.test(text)) {
         score += 3;
       }
     });
 
-    // 2. Check low-value indicators
+    // 3. Check low-value indicators
     this.lowValueIndicators.forEach(pattern => {
       const matches = text.match(pattern);
       if (matches) {
@@ -280,10 +287,14 @@ class BaitDetector {
   }
 
   /**
-   * Enhanced analysis using both rule-based and ML classification
+   * Enhanced analysis using both rule-based and ML classification with language support
    */
   async analyzePostAdvanced(text, postElement = null, authorInfo = null) {
     const ruleBasedResult = this.scorePost(text, postElement);
+
+    // Language analysis
+    const langAnalysis = this.languageSupport.scoreTextByLanguage(text);
+
     let mlResult = null;
 
     // Try ML classification if available
@@ -292,7 +303,11 @@ class BaitDetector {
         const context = {
           author: authorInfo?.name,
           hasMedia: postElement?.querySelector('img, video') ? true : false,
-          postId: postElement?.dataset?.urn || Date.now().toString()
+          postId: postElement?.dataset?.urn || Date.now().toString(),
+          language: langAnalysis.language,
+          priorScore: ruleBasedResult,
+          aggressiveness: this.getAggressivenessFromSettings(),
+          useEnhancedPrompt: true // Force enhanced prompts for better accuracy
         };
 
         mlResult = await this.mlClassifier.classify(text, context);
@@ -303,27 +318,72 @@ class BaitDetector {
 
     return {
       ruleBasedScore: ruleBasedResult,
+      languageAnalysis: langAnalysis,
       mlResult: mlResult,
-      combinedScore: this.combineScores(ruleBasedResult, mlResult),
-      method: mlResult ? 'hybrid' : 'rules'
+      combinedScore: this.combineScores(ruleBasedResult, mlResult, langAnalysis),
+      method: mlResult ? 'hybrid' : 'rules',
+      detectedLanguage: langAnalysis.language
     };
   }
 
   /**
-   * Combine rule-based and ML scores intelligently
+   * Get aggressiveness setting from storage or default
    */
-  combineScores(ruleScore, mlResult) {
-    if (!mlResult) return ruleScore;
+  getAggressivenessFromSettings() {
+    // This would typically come from extension settings
+    // For now, return medium as default
+    return 'medium';
+  }
+
+  /**
+   * Combine rule-based and ML scores intelligently with language awareness
+   */
+  combineScores(ruleScore, mlResult, langAnalysis = null) {
+    let baseScore = ruleScore;
+
+    // If we have language analysis, it's already included in ruleScore
+    // But we can use it for additional insights
+
+    if (!mlResult) {
+      return baseScore;
+    }
 
     // Convert ML confidence (0-1) to rule-based scale (0-10+)
     const mlScore = mlResult.confidence * 10;
 
-    // Weighted combination: 40% rules, 60% ML
-    const combined = (ruleScore * 0.4) + (mlScore * 0.6);
+    // Adaptive weighting based on content characteristics
+    let ruleWeight = 0.4;
+    let mlWeight = 0.6;
 
-    // If either method is very confident, boost the score
+    // If language analysis indicates non-English content, trust ML more
+    if (langAnalysis && langAnalysis.language !== 'en') {
+      mlWeight = 0.7;
+      ruleWeight = 0.3;
+    }
+
+    // If ML has high confidence, trust it more
+    if (mlResult.confidence > 0.8) {
+      mlWeight = 0.8;
+      ruleWeight = 0.2;
+    }
+
+    // If rule-based score is very high, trust it more
+    if (ruleScore > 6) {
+      ruleWeight = 0.6;
+      mlWeight = 0.4;
+    }
+
+    // Weighted combination
+    const combined = (baseScore * ruleWeight) + (mlScore * mlWeight);
+
+    // If either method is very confident about bait, boost the score
     if (ruleScore > 5 || mlResult.confidence > 0.8) {
-      return Math.max(combined, Math.max(ruleScore, mlScore));
+      return Math.max(combined, Math.max(baseScore, mlScore) * 0.9);
+    }
+
+    // If both methods agree it's not bait, reduce the score
+    if (ruleScore < 2 && mlResult.confidence < 0.3) {
+      return Math.min(combined, Math.max(baseScore, mlScore) * 0.8);
     }
 
     return combined;
@@ -365,29 +425,65 @@ class BaitDetector {
   }
 
   /**
-   * Generate human-readable reasoning for the decision
+   * Generate human-readable reasoning for the decision with language awareness
    */
   generateReasoning(analysis, shouldHide) {
     const reasons = [];
 
-    if (analysis.ruleBasedScore > 2) {
-      reasons.push(`Rule-based patterns detected (score: ${analysis.ruleBasedScore.toFixed(1)})`);
+    // Language information
+    if (analysis.languageAnalysis && analysis.languageAnalysis.language !== 'en') {
+      const langName = this.languageSupport.getLanguageName(analysis.languageAnalysis.language);
+      reasons.push(`${langName} content analyzed`);
     }
 
+    // Rule-based analysis
+    if (analysis.ruleBasedScore > 2) {
+      const patterns = [];
+      if (analysis.languageAnalysis?.score > 1) {
+        patterns.push('language-specific bait patterns');
+      }
+      if (analysis.ruleBasedScore - (analysis.languageAnalysis?.score || 0) > 2) {
+        patterns.push('universal bait patterns');
+      }
+
+      const patternText = patterns.length > 0 ? ` (${patterns.join(', ')})` : '';
+      reasons.push(`Rule-based detection${patternText}: ${analysis.ruleBasedScore.toFixed(1)}/10`);
+    }
+
+    // ML analysis
     if (analysis.mlResult) {
+      const confidence = (analysis.mlResult.confidence * 100).toFixed(0);
+
       if (analysis.mlResult.confidence > 0.7) {
-        reasons.push(`High ML confidence: ${(analysis.mlResult.confidence * 100).toFixed(0)}%`);
+        reasons.push(`High AI confidence: ${confidence}%`);
+      } else if (analysis.mlResult.confidence > 0.4) {
+        reasons.push(`Moderate AI confidence: ${confidence}%`);
       }
+
       if (analysis.mlResult.reasoning) {
-        reasons.push(analysis.mlResult.reasoning);
+        // Clean up and shorten the reasoning
+        const cleanReasoning = analysis.mlResult.reasoning
+          .replace(/^(Contains?|Appears?|Seems?)\s*/i, '')
+          .replace(/\s*\.$/, '')
+          .substring(0, 100);
+        reasons.push(cleanReasoning);
       }
+
+      if (analysis.mlResult.method) {
+        reasons.push(`Method: ${analysis.mlResult.method}`);
+      }
+    }
+
+    // Quality indicators
+    if (shouldHide && analysis.combinedScore < 3) {
+      reasons.push('borderline case - review recommended');
     }
 
     if (reasons.length === 0) {
       return shouldHide ? 'Low-quality indicators detected' : 'Appears to be genuine content';
     }
 
-    return reasons.join('; ');
+    return reasons.join(' • ');
   }
 
   /**
